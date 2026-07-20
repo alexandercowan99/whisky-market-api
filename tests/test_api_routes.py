@@ -51,6 +51,17 @@ def test_upload_valid_sample_csv():
     assert first_cleaned_row["estimate_high"] == 550.0
     assert first_cleaned_row["estimate_currency"] == "GBP"
 
+    assert "upload_summary" in response_body
+
+    upload_summary = response_body["upload_summary"]
+
+    assert upload_summary["total_rows"] == 10
+    assert upload_summary["sold_lots"] == 10
+    assert upload_summary["unsold_lots"] == 0
+    assert upload_summary["rows_with_result_price"] == 10
+    assert upload_summary["rows_with_auction_date"] == 10
+    assert upload_summary["average_result_price"] is not None
+
 def test_upload_rejects_non_csv_file():
     fake_file = BytesIO(b"this is not a proper csv file")
 

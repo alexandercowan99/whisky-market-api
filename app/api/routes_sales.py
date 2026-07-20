@@ -6,6 +6,7 @@ import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
+from app.services.analytics import build_upload_summary
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -54,6 +55,9 @@ async def upload_sales_file(file: UploadFile = File(...)):
         )
 
     cleaned_df = add_cleaned_columns(df)
+    upload_summary = build_upload_summary(cleaned_df)
+
+    upload_summary = build_upload_summary(cleaned_df)
 
     cleaned_preview = cleaned_df[
         [
@@ -80,5 +84,6 @@ async def upload_sales_file(file: UploadFile = File(...)):
         "columns_received": len(df.columns),
         "columns": received_columns,
         "validation": validation_result,
+        "upload_summary": upload_summary,
         "cleaned_preview": cleaned_preview,
     }
