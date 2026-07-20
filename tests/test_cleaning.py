@@ -1,4 +1,4 @@
-from app.services.cleaning import parse_auction_date_string, parse_lot_result_string
+from app.services.cleaning import parse_auction_date_string, parse_lot_result_string, parse_lot_details
 
 def test_parse_gbp_sold_result():
     result = parse_lot_result_string("RESULT £450 SOLD")
@@ -60,3 +60,23 @@ def test_parse_invalid_auction_date_string():
     result = parse_auction_date_string("not a real date")
 
     assert result is None
+
+def test_parse_lot_details_size_and_quantity():
+    result = parse_lot_details("SIZE 700 ml QUANTITY 1 Bottle")
+
+    assert result["size_ml"] == 700
+    assert result["quantity"] == 1
+
+
+def test_parse_lot_details_multiline():
+    result = parse_lot_details("SIZE\n750 ml\nQUANTITY\n2 Bottles")
+
+    assert result["size_ml"] == 750
+    assert result["quantity"] == 2
+
+
+def test_parse_empty_lot_details():
+    result = parse_lot_details("")
+
+    assert result["size_ml"] is None
+    assert result["quantity"] is None

@@ -62,9 +62,12 @@ async def upload_sales_file(file: UploadFile = File(...)):
             "auction_date",
             "Lot_Title",
             "Lot_Result_String",
+            "Lot_Details",
             "result_price",
             "result_currency",
             "sale_status",
+            "size_ml",
+            "quantity",
         ]
     ].head(5).to_dict(orient="records")
 

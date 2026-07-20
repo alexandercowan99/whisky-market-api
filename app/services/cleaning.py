@@ -50,19 +50,6 @@ def parse_lot_result_string(result_string: str) -> dict:
         "sale_status": sale_status,
     }
 
-def add_cleaned_columns(df):
-    df = df.copy()
-
-    parsed_results = df["Lot_Result_String"].apply(parse_lot_result_string)
-
-    df["result_price"] = parsed_results.apply(lambda result: result["result_price"])
-    df["result_currency"] = parsed_results.apply(lambda result: result["currency"])
-    df["sale_status"] = parsed_results.apply(lambda result: result["sale_status"])
-
-    df["auction_date"] = df["Auction_Date_String"].apply(parse_auction_date_string)
-
-    return df
-
 def parse_auction_date_string(date_string: str) -> str | None:
 
     if not isinstance(date_string, str) or date_string.strip() == "":
@@ -79,3 +66,42 @@ def parse_auction_date_string(date_string: str) -> str | None:
         return None
 
     return parsed_datetime.date().isoformat()
+
+def parse_lot_details(details_string: str) -> dict:
+
+    if not isinstance(details_string, str) or details_string.strip() == "":
+        return {
+            "size_ml": None,
+            "quantity": None,
+        }
+
+    cleaned_text = details_string.upper().replace("\n", " ").strip()
+
+    size_match = re.search(r"SIZE\s+(\d+)\s*ML", cleaned_text)
+    quantity_match = re.search(r"QUANTITY\s+(\d+)", cleaned_text)
+
+    size_ml = int(size_match.group(1)) if size_match else None
+    quantity = int(quantity_match.group(1)) if quantity_match else None
+
+    return {
+        "size_ml": size_ml,
+        "quantity": quantity,
+    }
+
+def add_cleaned_columns(df):
+    df = df.copy()
+
+    parsed_results = df["Lot_Result_String"].apply(parse_lot_result_string)
+
+    df["result_price"] = parsed_results.apply(lambda result: result["result_price"])
+    df["result_currency"] = parsed_results.apply(lambda result: result["currency"])
+    df["sale_status"] = parsed_results.apply(lambda result: result["sale_status"])
+
+    df["auction_date"] = df["Auction_Date_String"].apply(parse_auction_date_string)
+
+    parsed_details = df["Lot_Details"].apply(parse_lot_details)
+
+    df["size_ml"] = parsed_details.apply(lambda result: result["size_ml"])
+    df["quantity"] = parsed_details.apply(lambda result: result["quantity"])
+
+    return df
