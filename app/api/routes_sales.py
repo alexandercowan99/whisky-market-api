@@ -5,6 +5,7 @@ from io import BytesIO
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.services.validation import validate_required_columns
+from app.services.cleaning import add_parsed_result_columns
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -52,10 +53,23 @@ async def upload_sales_file(file: UploadFile = File(...)):
             },
         )
 
+    cleaned_df = add_parsed_result_columns(df)
+
+    cleaned_preview = cleaned_df[
+        [
+            "Lot_Title",
+            "Lot_Result_String",
+            "result_price",
+            "result_currency",
+            "sale_status",
+        ]
+    ].head(5).to_dict(orient="records")
+
     return {
         "filename": file.filename,
         "rows_received": len(df),
         "columns_received": len(df.columns),
         "columns": received_columns,
         "validation": validation_result,
+        "cleaned_preview": cleaned_preview,
     }
