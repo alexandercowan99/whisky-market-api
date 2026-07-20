@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
-
 from app.main import app
+from io import BytesIO
+
 
 client = TestClient(app)
 
@@ -39,3 +40,33 @@ def test_upload_valid_sample_csv():
     assert response_body["validation"]["missing_columns"] == []
     assert "cleaned_preview" in response_body
     assert len(response_body["cleaned_preview"]) > 0
+
+def test_upload_rejects_non_csv_file():
+    fake_file = BytesIO(b"this is not a proper csv file")
+
+    response = client.post(
+        "/sales/upload",
+        files={"file": ("not_a_csv.txt", fake_file, "text/plain")},
+    )
+
+    assert response.status_code == 400
+    response_body = response.json()
+    assert response_body["detail"]["message"] == "Only CSV files are supported."
+
+def test_upload_rejects_csv_with_missing_columns():
+    bad_csv = BytesIO(
+        b"Wrong_Column,Another_Wrong_Column\n"
+        b"value1,value2\n"
+    )
+
+    response = client.post(
+        "/sales/upload",
+        files={"file": ("bad_file.csv", bad_csv, "text/csv")},
+    )
+    
+    assert response.status_code == 400
+
+    response_body = response.json()
+
+    assert response_body["detail"]["message"] == "Uploaded CSV is missing required columns."
+    assert "Auction_Name" in response_body["detail"]["missing_columns"]
