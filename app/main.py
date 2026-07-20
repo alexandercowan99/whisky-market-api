@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.api import routes_health
+from app.api import routes_sales
 
 app = FastAPI(
     title="Whisky Market Data API",
@@ -8,3 +9,4 @@ app = FastAPI(
 )
 
 app.include_router(routes_health.router)
+app.include_router(routes_sales.router)
