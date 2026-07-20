@@ -22,3 +22,10 @@ __pycache__/
 
 # Editor settings
 .vscode/
+
+# Real/local data - do not commit
+data/raw/
+data/private/
+data/real/
+*.xlsx
+*.xls
