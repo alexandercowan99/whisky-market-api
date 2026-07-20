@@ -50,14 +50,16 @@ def parse_lot_result_string(result_string: str) -> dict:
         "sale_status": sale_status,
     }
 
-def add_parsed_result_columns(df):
-    parsed_results = df["Lot_Result_String"].apply(parse_lot_result_string)
-
+def add_cleaned_columns(df):
     df = df.copy()
+
+    parsed_results = df["Lot_Result_String"].apply(parse_lot_result_string)
 
     df["result_price"] = parsed_results.apply(lambda result: result["result_price"])
     df["result_currency"] = parsed_results.apply(lambda result: result["currency"])
     df["sale_status"] = parsed_results.apply(lambda result: result["sale_status"])
+
+    df["auction_date"] = df["Auction_Date_String"].apply(parse_auction_date_string)
 
     return df
 

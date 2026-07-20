@@ -5,7 +5,7 @@ from io import BytesIO
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.services.validation import validate_required_columns
-from app.services.cleaning import add_parsed_result_columns
+from app.services.cleaning import add_cleaned_columns
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -53,10 +53,13 @@ async def upload_sales_file(file: UploadFile = File(...)):
             },
         )
 
-    cleaned_df = add_parsed_result_columns(df)
+    cleaned_df = add_cleaned_columns(df)
 
     cleaned_preview = cleaned_df[
         [
+            "Auction_Name",
+            "Auction_Date_String",
+            "auction_date",
             "Lot_Title",
             "Lot_Result_String",
             "result_price",
