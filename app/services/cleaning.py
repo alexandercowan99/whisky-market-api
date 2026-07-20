@@ -88,6 +88,47 @@ def parse_lot_details(details_string: str) -> dict:
         "quantity": quantity,
     }
 
+def parse_estimate_string(estimate_string: str) -> dict:
+
+    if not isinstance(estimate_string, str) or estimate_string.strip() == "":
+        return {
+            "estimate_low": None,
+            "estimate_high": None,
+            "estimate_currency": None,
+        }
+
+    cleaned_text = estimate_string.upper().replace("\n", " ").strip()
+
+    estimate_currency = None
+
+    if "£" in cleaned_text:
+        estimate_currency = "GBP"
+    elif "$" in cleaned_text:
+        estimate_currency = "USD"
+    elif "€" in cleaned_text:
+        estimate_currency = "EUR"
+
+    estimate_match = re.search(
+        r"[£$€]?\s?([\d,]+(?:\.\d+)?)\s*-\s*[£$€]?\s?([\d,]+(?:\.\d+)?)",
+        cleaned_text,
+    )
+
+    if not estimate_match:
+        return {
+            "estimate_low": None,
+            "estimate_high": None,
+            "estimate_currency": estimate_currency,
+        }
+
+    estimate_low = float(estimate_match.group(1).replace(",", ""))
+    estimate_high = float(estimate_match.group(2).replace(",", ""))
+
+    return {
+        "estimate_low": estimate_low,
+        "estimate_high": estimate_high,
+        "estimate_currency": estimate_currency,
+    }
+
 def add_cleaned_columns(df):
     df = df.copy()
 
@@ -103,5 +144,11 @@ def add_cleaned_columns(df):
 
     df["size_ml"] = parsed_details.apply(lambda result: result["size_ml"])
     df["quantity"] = parsed_details.apply(lambda result: result["quantity"])
+
+    parsed_estimates = df["Lot_Estimate_String"].apply(parse_estimate_string)
+
+    df["estimate_low"] = parsed_estimates.apply(lambda result: result["estimate_low"])
+    df["estimate_high"] = parsed_estimates.apply(lambda result: result["estimate_high"])
+    df["estimate_currency"] = parsed_estimates.apply(lambda result: result["estimate_currency"])
 
     return df

@@ -1,4 +1,4 @@
-from app.services.cleaning import parse_auction_date_string, parse_lot_result_string, parse_lot_details
+from app.services.cleaning import parse_auction_date_string, parse_lot_result_string, parse_lot_details, parse_estimate_string
 
 def test_parse_gbp_sold_result():
     result = parse_lot_result_string("RESULT £450 SOLD")
@@ -80,3 +80,34 @@ def test_parse_empty_lot_details():
 
     assert result["size_ml"] is None
     assert result["quantity"] is None
+
+def test_parse_gbp_estimate_string():
+    result = parse_estimate_string("ESTIMATE £400-£550")
+
+    assert result["estimate_low"] == 400.0
+    assert result["estimate_high"] == 550.0
+    assert result["estimate_currency"] == "GBP"
+
+
+def test_parse_usd_estimate_string_with_commas():
+    result = parse_estimate_string("ESTIMATE $17,500-$22,000")
+
+    assert result["estimate_low"] == 17500.0
+    assert result["estimate_high"] == 22000.0
+    assert result["estimate_currency"] == "USD"
+
+
+def test_parse_empty_estimate_string():
+    result = parse_estimate_string("")
+
+    assert result["estimate_low"] is None
+    assert result["estimate_high"] is None
+    assert result["estimate_currency"] is None
+
+
+def test_parse_invalid_estimate_string():
+    result = parse_estimate_string("No estimate available")
+
+    assert result["estimate_low"] is None
+    assert result["estimate_high"] is None
+    assert result["estimate_currency"] is None
