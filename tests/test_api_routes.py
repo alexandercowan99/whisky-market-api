@@ -41,6 +41,11 @@ def test_upload_valid_sample_csv():
     assert "cleaned_preview" in response_body
     assert len(response_body["cleaned_preview"]) > 0
 
+    first_cleaned_row = response_body["cleaned_preview"][0]
+
+    assert "auction_date" in first_cleaned_row
+    assert first_cleaned_row["auction_date"] == "2025-03-23"
+
 def test_upload_rejects_non_csv_file():
     fake_file = BytesIO(b"this is not a proper csv file")
 
@@ -63,7 +68,7 @@ def test_upload_rejects_csv_with_missing_columns():
         "/sales/upload",
         files={"file": ("bad_file.csv", bad_csv, "text/csv")},
     )
-    
+
     assert response.status_code == 400
 
     response_body = response.json()
