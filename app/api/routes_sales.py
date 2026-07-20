@@ -19,9 +19,25 @@ def test_sales_route():
 
 @router.post("/upload")
 async def upload_sales_file(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Only CSV files are supported."
+            },
+        )
+
     contents = await file.read()
 
-    df = pd.read_csv(BytesIO(contents))
+    try:
+        df = pd.read_csv(BytesIO(contents))
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Uploaded file could not be read as a CSV."
+            },
+        )
 
     received_columns = list(df.columns)
     validation_result = validate_required_columns(received_columns)
