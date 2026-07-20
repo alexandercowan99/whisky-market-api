@@ -45,6 +45,8 @@ def test_upload_valid_sample_csv():
 
     assert "auction_date" in first_cleaned_row
     assert first_cleaned_row["auction_date"] == "2025-03-23"
+    assert first_cleaned_row["size_ml"] == 700
+    assert first_cleaned_row["quantity"] == 1
 
 def test_upload_rejects_non_csv_file():
     fake_file = BytesIO(b"this is not a proper csv file")
