@@ -1,5 +1,5 @@
 import re
-
+from datetime import datetime
 
 def parse_lot_result_string(result_string: str) -> dict:
     """
@@ -60,3 +60,20 @@ def add_parsed_result_columns(df):
     df["sale_status"] = parsed_results.apply(lambda result: result["sale_status"])
 
     return df
+
+def parse_auction_date_string(date_string: str) -> str | None:
+
+    if not isinstance(date_string, str) or date_string.strip() == "":
+        return None
+
+    cleaned_text = date_string.strip()
+
+    if cleaned_text.lower().startswith("ended "):
+        cleaned_text = cleaned_text[6:]
+
+    try:
+        parsed_datetime = datetime.strptime(cleaned_text, "%b %d %Y at %I:%M %p")
+    except ValueError:
+        return None
+
+    return parsed_datetime.date().isoformat()

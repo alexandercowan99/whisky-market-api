@@ -1,4 +1,4 @@
-from app.services.cleaning import parse_lot_result_string
+from app.services.cleaning import parse_auction_date_string, parse_lot_result_string
 
 def test_parse_gbp_sold_result():
     result = parse_lot_result_string("RESULT £450 SOLD")
@@ -38,3 +38,25 @@ def test_parse_none_result():
     assert result["result_price"] is None
     assert result["currency"] is None
     assert result["sale_status"] == "unknown"
+
+def test_parse_auction_date_string():
+    result = parse_auction_date_string("Ended Mar 23 2025 at 11:00 PM")
+
+    assert result == "2025-03-23"
+
+def test_parse_auction_date_string_without_ended_prefix():
+    result = parse_auction_date_string("Apr 12 2025 at 9:00 PM")
+
+    assert result == "2025-04-12"
+
+
+def test_parse_empty_auction_date_string():
+    result = parse_auction_date_string("")
+
+    assert result is None
+
+
+def test_parse_invalid_auction_date_string():
+    result = parse_auction_date_string("not a real date")
+
+    assert result is None
