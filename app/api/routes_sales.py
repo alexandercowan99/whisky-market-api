@@ -8,13 +8,12 @@ from sqlalchemy.orm import Session
 from typing import Literal
 
 from app.db.database import get_db
-from app.db.repository import get_auction_lots, insert_auction_lots
+from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
 
 router = APIRouter(prefix="/sales", tags=["sales"])
-
 
 @router.get("/test")
 def test_sales_route():
@@ -23,6 +22,9 @@ def test_sales_route():
         "next_step": "CSV upload endpoint"
     }
 
+@router.get("/summary")
+def sales_summary(db: Session = Depends(get_db)):
+    return get_sales_summary(db)
 
 @router.post("/upload")
 async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(get_db),):

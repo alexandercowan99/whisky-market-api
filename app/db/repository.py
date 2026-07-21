@@ -50,3 +50,38 @@ def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = No
         query = query.filter(AuctionLot.sale_status == sale_status)
 
     return query.limit(limit).all()
+
+def get_sales_summary(db: Session) -> dict:
+    
+    lots = db.query(AuctionLot).all()
+
+    sold_lots = sum(1 for lot in lots if lot.sale_status == "sold")
+    unsold_lots = sum(1 for lot in lots if lot.sale_status == "unsold")
+
+    result_prices = [
+        lot.result_price
+        for lot in lots
+        if lot.result_price is not None
+    ]
+
+    rows_with_result_price = len(result_prices)
+
+    rows_with_auction_date = sum(
+        1 for lot in lots
+        if lot.auction_date is not None
+    )
+
+    average_result_price = (
+        round(sum(result_prices) / len(result_prices), 2)
+        if result_prices
+        else None
+    )
+
+    return {
+        "total_lots": len(lots),
+        "sold_lots": sold_lots,
+        "unsold_lots": unsold_lots,
+        "rows_with_result_price": rows_with_result_price,
+        "rows_with_auction_date": rows_with_auction_date,
+        "average_result_price": average_result_price,
+    }

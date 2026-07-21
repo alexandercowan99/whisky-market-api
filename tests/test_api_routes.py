@@ -226,3 +226,25 @@ def test_get_sales_lots_rejects_invalid_sale_status(client):
     response = client.get("/sales/lots?sale_status=random")
 
     assert response.status_code == 422
+
+def test_get_sales_summary_returns_database_summary(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/summary")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["total_lots"] == 10
+    assert response_body["sold_lots"] == 10
+    assert response_body["unsold_lots"] == 0
+    assert response_body["rows_with_result_price"] == 10
+    assert response_body["rows_with_auction_date"] == 10
+    assert response_body["average_result_price"] is not None
