@@ -1,3 +1,5 @@
+import pandas as pd
+from sqlalchemy.orm import Session
 from app.db.models import AuctionLot
 
 def build_auction_lot_from_row(row) -> AuctionLot:
@@ -27,3 +29,15 @@ def build_auction_lot_from_row(row) -> AuctionLot:
         lot_condition=row.get("Lot_Condition"),
         lot_description=row.get("Lot_Description"),
     )
+
+def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> int:
+    auction_lots = []
+
+    for _, row in cleaned_df.iterrows():
+        auction_lot = build_auction_lot_from_row(row)
+        auction_lots.append(auction_lot)
+
+    db.add_all(auction_lots)
+    db.commit()
+
+    return len(auction_lots)
