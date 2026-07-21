@@ -140,4 +140,54 @@ def get_auction_house_summary(db: Session) -> list[dict]:
 
     return auction_house_summaries
 
+def get_monthly_sales_summary(db: Session) -> list[dict]:
+
+    lots = db.query(AuctionLot).all()
+
+    summary_by_month = {}
+
+    for lot in lots:
+        auction_month = lot.auction_date[:7] if lot.auction_date else "Unknown"
+
+        if auction_month not in summary_by_month:
+            summary_by_month[auction_month] = {
+                "auction_month": auction_month,
+                "total_lots": 0,
+                "sold_lots": 0,
+                "result_prices": [],
+            }
+
+        summary_by_month[auction_month]["total_lots"] += 1
+
+        if lot.sale_status == "sold":
+            summary_by_month[auction_month]["sold_lots"] += 1
+
+        if lot.result_price is not None:
+            summary_by_month[auction_month]["result_prices"].append(lot.result_price)
+
+    monthly_summaries = []
+
+    for month_summary in summary_by_month.values():
+        result_prices = month_summary["result_prices"]
+
+        average_result_price = (
+            round(sum(result_prices) / len(result_prices), 2)
+            if result_prices
+            else None
+        )
+
+        monthly_summaries.append(
+            {
+                "auction_month": month_summary["auction_month"],
+                "total_lots": month_summary["total_lots"],
+                "sold_lots": month_summary["sold_lots"],
+                "rows_with_result_price": len(result_prices),
+                "average_result_price": average_result_price,
+            }
+        )
+
+    return sorted(
+        monthly_summaries,
+        key=lambda month_summary: month_summary["auction_month"],
+    )
 

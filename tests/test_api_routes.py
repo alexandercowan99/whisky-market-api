@@ -324,3 +324,32 @@ def test_get_sales_lots_accepts_auction_name_filter(client):
 
     for lot in response_body["lots"]:
         assert lot["auction_name"] == "Highland Whisky Auctions"
+
+def test_get_monthly_sales_summary_returns_grouped_results(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/monthly-summary")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 10
+    assert len(response_body["monthly_summary"]) == 10
+
+    march_summary = next(
+        month
+        for month in response_body["monthly_summary"]
+        if month["auction_month"] == "2025-03"
+    )
+
+    assert march_summary["total_lots"] == 1
+    assert march_summary["sold_lots"] == 1
+    assert march_summary["rows_with_result_price"] == 1
+    assert march_summary["average_result_price"] == 450.0

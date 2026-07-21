@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Literal
 
 from app.db.database import get_db
-from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots, get_auction_house_summary
+from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots, get_auction_house_summary, get_monthly_sales_summary
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
@@ -135,4 +135,13 @@ def auction_house_summary(db: Session = Depends(get_db)):
     return {
         "count": len(auction_houses),
         "auction_houses": auction_houses,
+    }
+
+@router.get("/monthly-summary")
+def monthly_sales_summary(db: Session = Depends(get_db)):
+    monthly_summary = get_monthly_sales_summary(db)
+
+    return {
+        "count": len(monthly_summary),
+        "monthly_summary": monthly_summary,
     }
