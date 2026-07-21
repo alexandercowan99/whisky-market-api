@@ -21,3 +21,14 @@ CSV upload
 → upload summary
 → SQLite storage
 → query and analytics endpoints
+
+---
+
+## Running with Docker
+
+This project can also be run in a Docker container.
+
+Build the image:
+
+```bash
+docker build -t whisky-market-api .
