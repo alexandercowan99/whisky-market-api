@@ -32,3 +32,27 @@ Build the image:
 
 ```bash
 docker build -t whisky-market-api .
+
+## Machine Learning: Price Prediction
+
+The project includes a baseline machine learning layer for predicting whisky auction result prices.
+
+The current model is a simple linear regression baseline trained on synthetic sample data. It uses the following numeric features:
+
+- `estimate_low`
+- `estimate_high`
+- `size_ml`
+- `quantity`
+
+The target variable is:
+
+- `result_price`
+
+This model is intentionally simple. The aim of this stage is to demonstrate a production-style ML workflow:
+
+```text
+cleaned data
+→ feature preparation
+→ train/test evaluation
+→ saved model artefact
+→ API-based inference
