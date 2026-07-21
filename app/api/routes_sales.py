@@ -6,6 +6,7 @@ import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
 from typing import Literal
+from pathlib import Path
 
 from app.db.database import get_db
 from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots, get_auction_house_summary, get_monthly_sales_summary
@@ -13,7 +14,12 @@ from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
 from app.api.serializers import serialize_auction_lot
-from app.api.schemas import AuctionLotsResponse
+from app.api.schemas import AuctionLotsResponse, PricePredictionRequest, PricePredictionResponse
+from app.ml.prediction import predict_price_from_model_file
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_PRICE_MODEL_PATH = PROJECT_ROOT / "models" / "price_model.joblib"
+MODEL_VERSION = "baseline-linear-regression-v1"
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -157,4 +163,31 @@ def monthly_sales_summary(db: Session = Depends(get_db)):
     return {
         "count": len(monthly_summary),
         "monthly_summary": monthly_summary,
+    }
+
+@router.post("/predict-price", response_model=PricePredictionResponse)
+def predict_sales_price(request: PricePredictionRequest):
+    input_features = request.model_dump()
+
+    try:
+        predicted_price = predict_price_from_model_file(
+            DEFAULT_PRICE_MODEL_PATH,
+            input_features,
+        )
+    except FileNotFoundError:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "message": "Price prediction model not found. Run python -m scripts.train_price_model first."
+            },
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": str(error)},
+        )
+
+    return {
+        "predicted_price": predicted_price,
+        "model_version": MODEL_VERSION,
     }

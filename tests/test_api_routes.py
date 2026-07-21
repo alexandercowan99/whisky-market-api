@@ -10,6 +10,11 @@ from app.db.database import Base, get_db
 from app.db.models import AuctionLot
 from app.main import app
 
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+from app.api import routes_sales
+from app.ml.model_io import save_model
+
 @pytest.fixture()
 def test_db():
     test_engine = create_engine(
@@ -408,3 +413,80 @@ def test_get_sales_lots_accepts_lot_category_filter(client):
 
     for lot in response_body["lots"]:
         assert lot["lot_category"] == "SINGLE MALT"
+
+
+def test_predict_price_endpoint_returns_prediction(client, tmp_path, monkeypatch):
+    X = pd.DataFrame(
+        {
+            "estimate_low": [400.0, 70.0, 100.0],
+            "estimate_high": [550.0, 110.0, 150.0],
+            "size_ml": [700, 700, 700],
+            "quantity": [1, 1, 1],
+        }
+    )
+
+    y = pd.Series([450.0, 85.0, 120.0])
+
+    model = LinearRegression()
+    model.fit(X, y)
+
+    model_path = tmp_path / "price_model.joblib"
+    save_model(model, model_path)
+
+    monkeypatch.setattr(
+        routes_sales,
+        "DEFAULT_PRICE_MODEL_PATH",
+        model_path,
+    )
+
+    response = client.post(
+        "/sales/predict-price",
+        json={
+            "estimate_low": 400.0,
+            "estimate_high": 550.0,
+            "size_ml": 700,
+            "quantity": 1,
+        },
+    )
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert "predicted_price" in response_data
+    assert "model_version" in response_data
+    assert response_data["predicted_price"] > 0
+    assert response_data["model_version"] == "baseline-linear-regression-v1"
+
+
+def test_predict_price_endpoint_returns_503_when_model_missing(
+    client,
+    tmp_path,
+    monkeypatch,
+):
+    missing_model_path = tmp_path / "missing_price_model.joblib"
+
+    monkeypatch.setattr(
+        routes_sales,
+        "DEFAULT_PRICE_MODEL_PATH",
+        missing_model_path,
+    )
+
+    response = client.post(
+        "/sales/predict-price",
+        json={
+            "estimate_low": 400.0,
+            "estimate_high": 550.0,
+            "size_ml": 700,
+            "quantity": 1,
+        },
+    )
+
+    assert response.status_code == 503
+
+    response_data = response.json()
+
+    assert (
+        response_data["detail"]["message"]
+        == "Price prediction model not found. Run python -m scripts.train_price_model first."
+    )
