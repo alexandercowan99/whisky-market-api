@@ -19,7 +19,6 @@ SessionLocal = sessionmaker(
 
 Base = declarative_base()
 
-
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()
 
