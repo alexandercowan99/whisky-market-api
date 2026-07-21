@@ -274,3 +274,32 @@ def test_get_top_sales_lots_returns_highest_result_prices(client):
 
     assert result_prices == sorted(result_prices, reverse=True)
     assert all(price is not None for price in result_prices)
+
+def test_get_auction_house_summary_returns_grouped_results(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/auction-houses")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 5
+    assert len(response_body["auction_houses"]) == 5
+
+    highland_summary = next(
+        auction_house
+        for auction_house in response_body["auction_houses"]
+        if auction_house["auction_name"] == "Highland Whisky Auctions"
+    )
+
+    assert highland_summary["total_lots"] == 2
+    assert highland_summary["sold_lots"] == 2
+    assert highland_summary["rows_with_result_price"] == 2
+    assert highland_summary["average_result_price"] == 317.5

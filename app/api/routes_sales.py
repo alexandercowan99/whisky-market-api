@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Literal
 
 from app.db.database import get_db
-from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots
+from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots, get_auction_house_summary
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
@@ -125,4 +125,13 @@ def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), sale_status: 
     return {
         "count": len(lots_response),
         "lots": lots_response,
+    }
+
+@router.get("/auction-houses")
+def auction_house_summary(db: Session = Depends(get_db)):
+    auction_houses = get_auction_house_summary(db)
+
+    return {
+        "count": len(auction_houses),
+        "auction_houses": auction_houses,
     }

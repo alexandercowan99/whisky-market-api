@@ -90,5 +90,51 @@ def get_top_auction_lots(db: Session, limit: int = 10) -> dict:
 
     return db.query(AuctionLot).filter(AuctionLot.result_price.isnot(None)).order_by(AuctionLot.result_price.desc()).limit(limit).all()
 
+def get_auction_house_summary(db: Session) -> list[dict]:
+    lots = db.query(AuctionLot).all()
+
+    summary_by_house = {}
+
+    for lot in lots:
+        auction_name = lot.auction_name or "Unknown"
+
+        if auction_name not in summary_by_house:
+            summary_by_house[auction_name] = {
+                "auction_name": auction_name,
+                "total_lots": 0,
+                "sold_lots": 0,
+                "result_prices": [],
+            }
+
+        summary_by_house[auction_name]["total_lots"] += 1
+
+        if lot.sale_status == "sold":
+            summary_by_house[auction_name]["sold_lots"] += 1   
+
+        if lot.result_price is not None:
+            summary_by_house[auction_name]["result_prices"].append(lot.result_price)
+
+    auction_house_summaries = []
+
+    for auction_house in summary_by_house.values():
+        result_prices = auction_house["result_prices"]
+
+        average_result_price = (
+            round(sum(result_prices) / len(result_prices), 2)
+            if result_prices
+            else None
+        )
+
+        auction_house_summaries.append(
+            {
+                "auction_name": auction_house["auction_name"],
+                "total_lots": auction_house["total_lots"],
+                "sold_lots": auction_house["sold_lots"],
+                "rows_with_result_price": len(result_prices),
+                "average_result_price": average_result_price,
+            }
+        )
+
+    return auction_house_summaries
 
 
