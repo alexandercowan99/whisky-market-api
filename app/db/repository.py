@@ -42,7 +42,9 @@ def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> int:
 
     return len(auction_lots)
 
-def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = None, auction_name: str | None = None,) -> list[AuctionLot]:
+def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = None, 
+                     auction_name: str | None = None, min_price: float | None = None,
+                     max_price: float | None = None,) -> list[AuctionLot]:
 
     query = db.query(AuctionLot)
 
@@ -51,6 +53,12 @@ def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = No
     
     if auction_name is not None:
         query = query.filter(AuctionLot.auction_name == auction_name)
+
+    if min_price is not None:
+        query = query.filter(AuctionLot.result_price >= min_price)
+
+    if max_price is not None:
+        query = query.filter(AuctionLot.result_price <= max_price)
 
     return query.limit(limit).all()
 

@@ -113,10 +113,14 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
     }
 
 @router.get("/lots")
-def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), sale_status: Literal["sold", "unsold", "unknown"] | None = None, 
-                    auction_name: str | None = None, db: Session = Depends(get_db)):        
+def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), 
+                    sale_status: Literal["sold", "unsold", "unknown"] | None = None, 
+                    auction_name: str | None = None, 
+                    min_price: int = Query(default=None, ge=0),
+                    max_price: int = Query(default=None, ge=0),
+                    db: Session = Depends(get_db)):        
 
-    auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status, auction_name=auction_name)
+    auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status, auction_name=auction_name,min_price=min_price,max_price=max_price)
 
     lots_response = [
         serialize_auction_lot(lot)
