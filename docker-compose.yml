@@ -1,0 +1,31 @@
+services:
+  api:
+    build: .
+    container_name: whisky-market-api
+    environment:
+      DATABASE_URL: postgresql+psycopg://whisky_user:whisky_password@postgres:5432/whisky_market
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16
+    container_name: whisky-market-postgres
+    environment:
+      POSTGRES_DB: whisky_market
+      POSTGRES_USER: whisky_user
+      POSTGRES_PASSWORD: whisky_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whisky_user -d whisky_market"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
