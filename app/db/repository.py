@@ -41,3 +41,6 @@ def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> int:
     db.commit()
 
     return len(auction_lots)
+
+def get_auction_lots(db: Session) -> list[AuctionLot]:
+    return db.query(AuctionLot).all()
