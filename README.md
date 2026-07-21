@@ -113,27 +113,83 @@ http://localhost:8000/docs
 
 ---
 
-## Running with Docker
+## Running with Docker Compose and PostgreSQL
 
-Build the image:
+The project can also be run with PostgreSQL using Docker Compose.
 
-```bash
-docker build -t whisky-market-api .
-```
-
-Run the container:
-
-```bash
-docker run --rm -p 8000:8000 whisky-market-api
-```
-
-Then open:
+This starts two services:
 
 ```text
-http://localhost:8000/docs
+FastAPI app
+PostgreSQL database
 ```
 
-The Docker container starts with an empty SQLite database, so upload the sample CSV before using the query or analytics endpoints.
+Start both services:
+
+```bash
+docker compose up --build -d
+```
+
+Check the services are running:
+
+```bash
+docker compose ps
+```
+
+Open the API docs:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+In this mode, the API uses PostgreSQL instead of the default local SQLite database.
+
+The PostgreSQL connection is passed to the API container through the `DATABASE_URL` environment variable in `docker-compose.yml`.
+
+To stop the services:
+
+```bash
+docker compose down
+```
+
+To stop the services and delete the local PostgreSQL data volume:
+
+```bash
+docker compose down -v
+```
+
+The app still defaults to SQLite when `DATABASE_URL` is not set, so it can be run simply with:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+This keeps local development and testing lightweight while also supporting a more realistic PostgreSQL setup.
+
+### Checking PostgreSQL Data
+
+After uploading the sample CSV through the API, you can check the number of stored rows with:
+
+```bash
+docker compose exec postgres psql -U whisky_user -d whisky_market -c "SELECT COUNT(*) FROM auction_lots;"
+```
+
+Expected output after uploading the sample data once:
+
+```text
+ count
+-------
+    10
+(1 row)
+```
+
+You can also check which tables exist in PostgreSQL with:
+
+```bash
+docker compose exec postgres psql -U whisky_user -d whisky_market -c "\dt"
+```
+
+You should see the `auction_lots` table.
 
 ---
 
@@ -293,3 +349,4 @@ This is a portfolio project, not a production deployment.
 ### Test suite
 
 ![Tests passing](docs/images/tests-passing.png)
+
