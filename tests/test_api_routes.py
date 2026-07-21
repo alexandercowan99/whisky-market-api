@@ -167,3 +167,21 @@ def test_get_sales_lots_returns_saved_lots(client):
     assert first_lot["auction_name"] == "Highland Whisky Auctions"
     assert first_lot["auction_date"] == "2025-03-23"
     assert first_lot["result_price"] == 450.0
+
+def test_get_sales_lots_accepts_limit_parameter(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/lots?limit=3")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 3
+    assert len(response_body["lots"]) == 3

@@ -93,8 +93,9 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
     }
 
 @router.get("/lots")
-def list_sales_lots(db: Session = Depends(get_db)):
-    auction_lots = get_auction_lots(db)
+def list_sales_lots(limit: int = 100,db: Session = Depends(get_db)):
+    
+    auction_lots = get_auction_lots(db, limit=limit)
 
     lots_response = []
 
