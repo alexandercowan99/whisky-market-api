@@ -3,7 +3,11 @@ from fastapi import APIRouter
 from io import BytesIO
 
 import pandas as pd
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.db.repository import insert_auction_lots
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
@@ -20,7 +24,7 @@ def test_sales_route():
 
 
 @router.post("/upload")
-async def upload_sales_file(file: UploadFile = File(...)):
+async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(get_db),):
     if not file.filename.lower().endswith(".csv"):
         raise HTTPException(
             status_code=400,
@@ -56,8 +60,7 @@ async def upload_sales_file(file: UploadFile = File(...)):
 
     cleaned_df = add_cleaned_columns(df)
     upload_summary = build_upload_summary(cleaned_df)
-
-    upload_summary = build_upload_summary(cleaned_df)
+    rows_inserted = insert_auction_lots(db, cleaned_df)
 
     cleaned_preview = cleaned_df[
         [
@@ -85,5 +88,6 @@ async def upload_sales_file(file: UploadFile = File(...)):
         "columns": received_columns,
         "validation": validation_result,
         "upload_summary": upload_summary,
+        "rows_inserted": rows_inserted,
         "cleaned_preview": cleaned_preview,
     }
