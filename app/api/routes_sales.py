@@ -119,6 +119,12 @@ def list_sales_lots(limit: int = Query(default=100, ge=1, le=500),
                     min_price: int = Query(default=None, ge=0),
                     max_price: int = Query(default=None, ge=0),
                     db: Session = Depends(get_db)):        
+    
+    if min_price is not None and max_price is not None and min_price > max_price:
+        raise HTTPException(
+            status_code=400,
+            detail={"message": "min_price cannot be greater than max_price."},
+        )
 
     auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status, auction_name=auction_name,min_price=min_price,max_price=max_price)
 

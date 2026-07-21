@@ -375,3 +375,12 @@ def test_get_sales_lots_accepts_price_range_filters(client):
     for lot in response_body["lots"]:
         assert lot["result_price"] >= 150
         assert lot["result_price"] <= 250
+
+def test_get_sales_lots_rejects_invalid_price_range(client):
+    response = client.get("/sales/lots?min_price=300&max_price=100")
+
+    assert response.status_code == 400
+
+    response_body = response.json()
+
+    assert response_body["detail"]["message"] == "min_price cannot be greater than max_price."
