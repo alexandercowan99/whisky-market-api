@@ -1,18 +1,59 @@
-from fastapi.testclient import TestClient
-from app.main import app
 from io import BytesIO
 
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
-client = TestClient(app)
+from app.db.database import Base, get_db
+from app.db.models import AuctionLot
+from app.main import app
 
-def test_health_endpoint():
+@pytest.fixture()
+def test_db():
+    test_engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+
+    TestingSessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=test_engine,
+    )
+
+    Base.metadata.create_all(bind=test_engine)
+
+    db = TestingSessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
+        Base.metadata.drop_all(bind=test_engine)
+
+@pytest.fixture()
+def client(test_db):
+    def override_get_db():
+        yield test_db
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+
+def test_health_endpoint(client):
     response = client.get("/health")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_sales_test_endpoint():
+def test_sales_test_endpoint(client):
     response = client.get("/sales/test")
 
     assert response.status_code == 200
@@ -22,7 +63,8 @@ def test_sales_test_endpoint():
     assert response_body["message"] == "Sales routes are connected"
     assert response_body["next_step"] == "CSV upload endpoint"
 
-def test_upload_valid_sample_csv():
+def test_upload_valid_sample_csv(client, test_db):
+
     with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
         response = client.post(
             "/sales/upload",
@@ -35,6 +77,15 @@ def test_upload_valid_sample_csv():
 
     assert response_body["filename"] == "sample_auction_lots.csv"
     assert response_body["rows_received"] == 10
+    assert response_body["rows_inserted"] == 10
+
+    saved_lots = test_db.query(AuctionLot).all()
+
+    assert len(saved_lots) == 10
+    assert saved_lots[0].lot_title == "Macallan 18 Year Old Sherry Oak"
+    assert saved_lots[0].auction_date == "2025-03-23"
+    assert saved_lots[0].result_price == 450.0
+
     assert response_body["columns_received"] == 16
     assert response_body["validation"]["is_valid"] is True
     assert response_body["validation"]["missing_columns"] == []
@@ -62,7 +113,7 @@ def test_upload_valid_sample_csv():
     assert upload_summary["rows_with_auction_date"] == 10
     assert upload_summary["average_result_price"] is not None
 
-def test_upload_rejects_non_csv_file():
+def test_upload_rejects_non_csv_file(client):
     fake_file = BytesIO(b"this is not a proper csv file")
 
     response = client.post(
@@ -74,7 +125,7 @@ def test_upload_rejects_non_csv_file():
     response_body = response.json()
     assert response_body["detail"]["message"] == "Only CSV files are supported."
 
-def test_upload_rejects_csv_with_missing_columns():
+def test_upload_rejects_csv_with_missing_columns(client):
     bad_csv = BytesIO(
         b"Wrong_Column,Another_Wrong_Column\n"
         b"value1,value2\n"
@@ -91,3 +142,28 @@ def test_upload_rejects_csv_with_missing_columns():
 
     assert response_body["detail"]["message"] == "Uploaded CSV is missing required columns."
     assert "Auction_Name" in response_body["detail"]["missing_columns"]
+
+def test_get_sales_lots_returns_saved_lots(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/lots")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 10
+    assert len(response_body["lots"]) == 10
+
+    first_lot = response_body["lots"][0]
+
+    assert first_lot["lot_title"] == "Macallan 18 Year Old Sherry Oak"
+    assert first_lot["auction_name"] == "Highland Whisky Auctions"
+    assert first_lot["auction_date"] == "2025-03-23"
+    assert first_lot["result_price"] == 450.0
