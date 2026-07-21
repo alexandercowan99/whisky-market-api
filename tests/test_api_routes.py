@@ -248,3 +248,29 @@ def test_get_sales_summary_returns_database_summary(client):
     assert response_body["rows_with_result_price"] == 10
     assert response_body["rows_with_auction_date"] == 10
     assert response_body["average_result_price"] is not None
+
+def test_get_top_sales_lots_returns_highest_result_prices(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/top-lots?limit=3")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 3
+    assert len(response_body["lots"]) == 3
+
+    result_prices = [
+        lot["result_price"]
+        for lot in response_body["lots"]
+    ]
+
+    assert result_prices == sorted(result_prices, reverse=True)
+    assert all(price is not None for price in result_prices)

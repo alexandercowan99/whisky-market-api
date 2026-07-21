@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from typing import Literal
 
 from app.db.database import get_db
-from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots
+from app.db.repository import get_auction_lots, get_sales_summary, insert_auction_lots, get_top_auction_lots
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
@@ -25,6 +25,38 @@ def test_sales_route():
 @router.get("/summary")
 def sales_summary(db: Session = Depends(get_db)):
     return get_sales_summary(db)
+
+
+@router.get("/top-lots")
+def top_sales_lots(limit: int = Query(default=10, ge=1, le=50),db: Session = Depends(get_db),):
+    
+    auction_lots = get_top_auction_lots(db, limit=limit)
+
+    lots_response = []
+
+    for lot in auction_lots:
+        lots_response.append(
+            {
+                "id": lot.id,
+                "auction_name": lot.auction_name,
+                "auction_date": lot.auction_date,
+                "lot_title": lot.lot_title,
+                "lot_category": lot.lot_category,
+                "result_price": lot.result_price,
+                "result_currency": lot.result_currency,
+                "sale_status": lot.sale_status,
+                "estimate_low": lot.estimate_low,
+                "estimate_high": lot.estimate_high,
+                "estimate_currency": lot.estimate_currency,
+                "size_ml": lot.size_ml,
+                "quantity": lot.quantity,
+            }
+        )
+
+    return {
+        "count": len(lots_response),
+        "lots": lots_response,
+    }
 
 @router.post("/upload")
 async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(get_db),):
