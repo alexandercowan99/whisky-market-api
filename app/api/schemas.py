@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class AuctionLotResponse(BaseModel):
     id: int
@@ -18,3 +18,13 @@ class AuctionLotResponse(BaseModel):
 class AuctionLotsResponse(BaseModel):
     count: int
     lots: list[AuctionLotResponse]
+
+class PricePredictionRequest(BaseModel):
+    estimate_low: float = Field(ge=0)
+    estimate_high: float = Field(ge=0)
+    size_ml: int = Field(ge=1)
+    quantity: int = Field(ge=1)
+
+class PricePredictionResponse(BaseModel):
+    predicted_price: float
+    model_version: str
