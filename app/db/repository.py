@@ -42,5 +42,11 @@ def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> int:
 
     return len(auction_lots)
 
-def get_auction_lots(db: Session, limit: int = 100) -> list[AuctionLot]:
-    return db.query(AuctionLot).limit(limit).all()
+def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = None,) -> list[AuctionLot]:
+
+    query = db.query(AuctionLot)
+
+    if sale_status is not None:
+        query = query.filter(AuctionLot.sale_status == sale_status)
+
+    return query.limit(limit).all()

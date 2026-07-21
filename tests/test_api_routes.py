@@ -185,3 +185,33 @@ def test_get_sales_lots_accepts_limit_parameter(client):
 
     assert response_body["count"] == 3
     assert len(response_body["lots"]) == 3
+
+def test_get_sales_lots_accepts_sale_status_filter(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    sold_response = client.get("/sales/lots?sale_status=sold")
+
+    assert sold_response.status_code == 200
+
+    sold_response_body = sold_response.json()
+
+    assert sold_response_body["count"] == 10
+    assert len(sold_response_body["lots"]) == 10
+
+    for lot in sold_response_body["lots"]:
+        assert lot["sale_status"] == "sold"
+
+    unsold_response = client.get("/sales/lots?sale_status=unsold")
+
+    assert unsold_response.status_code == 200
+
+    unsold_response_body = unsold_response.json()
+
+    assert unsold_response_body["count"] == 0
+    assert unsold_response_body["lots"] == []
