@@ -3,8 +3,9 @@ from fastapi import APIRouter
 from io import BytesIO
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.orm import Session
+from typing import Literal
 
 from app.db.database import get_db
 from app.db.repository import get_auction_lots, insert_auction_lots
@@ -93,7 +94,7 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
     }
 
 @router.get("/lots")
-def list_sales_lots(limit: int = 100, sale_status: str | None = None, db: Session = Depends(get_db)):
+def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), sale_status: Literal["sold", "unsold", "unknown"] | None = None, db: Session = Depends(get_db)):        
 
     auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status)
 

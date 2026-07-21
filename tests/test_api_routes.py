@@ -215,3 +215,14 @@ def test_get_sales_lots_accepts_sale_status_filter(client):
 
     assert unsold_response_body["count"] == 0
     assert unsold_response_body["lots"] == []
+
+def test_get_sales_lots_rejects_invalid_limit(client):
+    response = client.get("/sales/lots?limit=0")
+
+    assert response.status_code == 422
+
+
+def test_get_sales_lots_rejects_invalid_sale_status(client):
+    response = client.get("/sales/lots?sale_status=random")
+
+    assert response.status_code == 422
