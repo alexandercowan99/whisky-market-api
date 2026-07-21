@@ -303,3 +303,24 @@ def test_get_auction_house_summary_returns_grouped_results(client):
     assert highland_summary["sold_lots"] == 2
     assert highland_summary["rows_with_result_price"] == 2
     assert highland_summary["average_result_price"] == 317.5
+
+def test_get_sales_lots_accepts_auction_name_filter(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get("/sales/lots?auction_name=Highland Whisky Auctions")
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] == 2
+    assert len(response_body["lots"]) == 2
+
+    for lot in response_body["lots"]:
+        assert lot["auction_name"] == "Highland Whisky Auctions"
