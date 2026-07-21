@@ -29,3 +29,6 @@ data/private/
 data/real/
 *.xlsx
 *.xls
+
+# Generated ML model artefacts
+models/*.joblib
