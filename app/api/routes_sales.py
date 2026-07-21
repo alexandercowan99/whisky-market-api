@@ -12,6 +12,7 @@ from app.db.repository import get_auction_lots, get_sales_summary, insert_auctio
 from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
+from app.api.serializers import serialize_auction_lot
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -29,29 +30,13 @@ def sales_summary(db: Session = Depends(get_db)):
 
 @router.get("/top-lots")
 def top_sales_lots(limit: int = Query(default=10, ge=1, le=50),db: Session = Depends(get_db),):
-    
+
     auction_lots = get_top_auction_lots(db, limit=limit)
 
-    lots_response = []
-
-    for lot in auction_lots:
-        lots_response.append(
-            {
-                "id": lot.id,
-                "auction_name": lot.auction_name,
-                "auction_date": lot.auction_date,
-                "lot_title": lot.lot_title,
-                "lot_category": lot.lot_category,
-                "result_price": lot.result_price,
-                "result_currency": lot.result_currency,
-                "sale_status": lot.sale_status,
-                "estimate_low": lot.estimate_low,
-                "estimate_high": lot.estimate_high,
-                "estimate_currency": lot.estimate_currency,
-                "size_ml": lot.size_ml,
-                "quantity": lot.quantity,
-            }
-        )
+    lots_response = [
+        serialize_auction_lot(lot)
+        for lot in auction_lots
+    ]
 
     return {
         "count": len(lots_response),
@@ -132,26 +117,10 @@ def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), sale_status: 
 
     auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status)
 
-    lots_response = []
-
-    for lot in auction_lots:
-        lots_response.append(
-            {
-                "id": lot.id,
-                "auction_name": lot.auction_name,
-                "auction_date": lot.auction_date,
-                "lot_title": lot.lot_title,
-                "lot_category": lot.lot_category,
-                "result_price": lot.result_price,
-                "result_currency": lot.result_currency,
-                "sale_status": lot.sale_status,
-                "estimate_low": lot.estimate_low,
-                "estimate_high": lot.estimate_high,
-                "estimate_currency": lot.estimate_currency,
-                "size_ml": lot.size_ml,
-                "quantity": lot.quantity,
-            }
-        )
+    lots_response = [
+        serialize_auction_lot(lot)
+        for lot in auction_lots
+    ]
 
     return {
         "count": len(lots_response),
