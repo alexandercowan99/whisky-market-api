@@ -384,3 +384,27 @@ def test_get_sales_lots_rejects_invalid_price_range(client):
     response_body = response.json()
 
     assert response_body["detail"]["message"] == "min_price cannot be greater than max_price."
+
+def test_get_sales_lots_accepts_lot_category_filter(client):
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        upload_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert upload_response.status_code == 200
+
+    response = client.get(
+        "/sales/lots",
+        params={"lot_category": "SINGLE MALT"},
+    )
+
+    assert response.status_code == 200
+
+    response_body = response.json()
+
+    assert response_body["count"] > 0
+    assert len(response_body["lots"]) == response_body["count"]
+
+    for lot in response_body["lots"]:
+        assert lot["lot_category"] == "SINGLE MALT"

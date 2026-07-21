@@ -13,6 +13,7 @@ from app.services.validation import validate_required_columns
 from app.services.cleaning import add_cleaned_columns
 from app.services.analytics import build_upload_summary
 from app.api.serializers import serialize_auction_lot
+from app.api.schemas import AuctionLotsResponse
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -28,7 +29,7 @@ def sales_summary(db: Session = Depends(get_db)):
     return get_sales_summary(db)
 
 
-@router.get("/top-lots")
+@router.get("/top-lots", response_model=AuctionLotsResponse)
 def top_sales_lots(limit: int = Query(default=10, ge=1, le=50),db: Session = Depends(get_db),):
 
     auction_lots = get_top_auction_lots(db, limit=limit)
@@ -112,10 +113,11 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
         "cleaned_preview": cleaned_preview,
     }
 
-@router.get("/lots")
+@router.get("/lots", response_model=AuctionLotsResponse)
 def list_sales_lots(limit: int = Query(default=100, ge=1, le=500), 
                     sale_status: Literal["sold", "unsold", "unknown"] | None = None, 
-                    auction_name: str | None = None, 
+                    auction_name: str | None = None,
+                    lot_category: str | None = None,
                     min_price: int = Query(default=None, ge=0),
                     max_price: int = Query(default=None, ge=0),
                     db: Session = Depends(get_db)):        
@@ -126,7 +128,8 @@ def list_sales_lots(limit: int = Query(default=100, ge=1, le=500),
             detail={"message": "min_price cannot be greater than max_price."},
         )
 
-    auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status, auction_name=auction_name,min_price=min_price,max_price=max_price)
+    auction_lots = get_auction_lots(db, limit=limit, sale_status = sale_status, auction_name=auction_name,
+                                    lot_category=lot_category,min_price=min_price,max_price=max_price)
 
     lots_response = [
         serialize_auction_lot(lot)
