@@ -30,17 +30,35 @@ def build_auction_lot_from_row(row) -> AuctionLot:
         lot_description=row.get("Lot_Description"),
     )
 
-def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> int:
-    auction_lots = []
+def insert_auction_lots(db: Session, cleaned_df: pd.DataFrame) -> dict[str, int]:
+    inserted_count = 0
+    duplicates_skipped = 0
+
+    auction_lots_to_insert = []
 
     for _, row in cleaned_df.iterrows():
-        auction_lot = build_auction_lot_from_row(row)
-        auction_lots.append(auction_lot)
+        existing_lot = (
+            db.query(AuctionLot)
+            .filter(AuctionLot.lot_link == row["Lot_Link"])
+            .first()
+        )
 
-    db.add_all(auction_lots)
+        if existing_lot is not None:
+            duplicates_skipped += 1
+            continue
+
+        auction_lot = build_auction_lot_from_row(row)
+        auction_lots_to_insert.append(auction_lot)
+        inserted_count += 1
+
+    db.add_all(auction_lots_to_insert)
     db.commit()
 
-    return len(auction_lots)
+    return {
+        "rows_received": len(cleaned_df),
+        "rows_inserted": inserted_count,
+        "duplicates_skipped": duplicates_skipped,
+    }
 
 def get_auction_lots(db: Session, limit: int = 100, sale_status: str | None = None,
                     auction_name: str | None = None,

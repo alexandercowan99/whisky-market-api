@@ -183,6 +183,19 @@ Expected output after uploading the sample data once:
 (1 row)
 ```
 
+### Duplicate Upload Handling
+
+The upload endpoint skips duplicate auction lots based on `Lot_Link`.
+
+If the same CSV is uploaded more than once, existing lots are not inserted again. The API response includes:
+
+```json
+{
+  "rows_received": 10,
+  "rows_inserted": 0,
+  "duplicates_skipped": 10
+}s
+
 You can also check which tables exist in PostgreSQL with:
 
 ```bash
