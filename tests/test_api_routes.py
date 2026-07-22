@@ -83,6 +83,7 @@ def test_upload_valid_sample_csv(client, test_db):
     assert response_body["filename"] == "sample_auction_lots.csv"
     assert response_body["rows_received"] == 10
     assert response_body["rows_inserted"] == 10
+    assert response_body["duplicates_skipped"] == 0
 
     saved_lots = test_db.query(AuctionLot).all()
 
@@ -117,6 +118,46 @@ def test_upload_valid_sample_csv(client, test_db):
     assert upload_summary["rows_with_result_price"] == 10
     assert upload_summary["rows_with_auction_date"] == 10
     assert upload_summary["average_result_price"] is not None
+
+def test_upload_valid_sample_csv_skips_duplicates(client, test_db):
+
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        first_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert first_response.status_code == 200
+
+    first_response_body = first_response.json()
+
+    assert first_response_body["filename"] == "sample_auction_lots.csv"
+    assert first_response_body["rows_received"] == 10
+    assert first_response_body["rows_inserted"] == 10
+    assert first_response_body["duplicates_skipped"] == 0
+
+    with open("data/sample/sample_auction_lots.csv", "rb") as csv_file:
+        second_response = client.post(
+            "/sales/upload",
+            files={"file": ("sample_auction_lots.csv", csv_file, "text/csv")},
+        )
+
+    assert second_response.status_code == 200
+
+    second_response_body = second_response.json()
+
+    assert second_response_body["filename"] == "sample_auction_lots.csv"
+    assert second_response_body["rows_received"] == 10
+    assert second_response_body["rows_inserted"] == 0
+    assert second_response_body["duplicates_skipped"] == 10
+
+    saved_lots = test_db.query(AuctionLot).all()
+
+    assert len(saved_lots) == 10
+    assert saved_lots[0].lot_title == "Macallan 18 Year Old Sherry Oak"
+    assert saved_lots[0].auction_date == "2025-03-23"
+    assert saved_lots[0].result_price == 450.0
+
 
 def test_upload_rejects_non_csv_file(client):
     fake_file = BytesIO(b"this is not a proper csv file")

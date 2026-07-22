@@ -87,7 +87,7 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
 
     cleaned_df = add_cleaned_columns(df)
     upload_summary = build_upload_summary(cleaned_df)
-    rows_inserted = insert_auction_lots(db, cleaned_df)
+    upload_result = insert_auction_lots(db, cleaned_df)
 
     cleaned_preview = cleaned_df[
         [
@@ -110,12 +110,13 @@ async def upload_sales_file(file: UploadFile = File(...), db: Session = Depends(
 
     return {
         "filename": file.filename,
-        "rows_received": len(df),
+        "rows_received": upload_result["rows_received"],
         "columns_received": len(df.columns),
         "columns": received_columns,
         "validation": validation_result,
         "upload_summary": upload_summary,
-        "rows_inserted": rows_inserted,
+        "rows_inserted": upload_result["rows_inserted"],
+        "duplicates_skipped": upload_result["duplicates_skipped"],
         "cleaned_preview": cleaned_preview,
     }
 
