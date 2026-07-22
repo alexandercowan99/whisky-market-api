@@ -115,6 +115,27 @@ http://localhost:8000/docs
 
 ## Running with Docker Compose and PostgreSQL
 
+### Environment Configuration
+
+Docker Compose supports environment variables for the PostgreSQL setup.
+
+An example configuration is provided in:
+
+```text
+.env.example
+
+For local development, Docker Compose also includes sensible default values, so the project can be started without creating a private .env file.
+
+To customise the database configuration, copy the example file:
+
+```bash
+cp .env.example .env
+```
+
+Then edit .env as needed.
+
+The .env file is intentionally ignored by Git so private local settings are not committed.
+
 The project can also be run with PostgreSQL using Docker Compose.
 
 This starts two services:
