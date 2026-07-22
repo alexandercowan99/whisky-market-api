@@ -78,6 +78,41 @@ http://localhost:8000/docs
 
 ---
 
+## Project Architecture
+
+The project supports three main run modes:
+
+```text
+Local development:
+FastAPI app
+→ SQLite database file
+
+Docker Compose mode:
+FastAPI container
+→ PostgreSQL container
+
+Test mode:
+pytest
+→ temporary SQLite test database
+```
+
+The app reads the database connection from the `DATABASE_URL` environment variable.
+
+If `DATABASE_URL` is not set, the app falls back to SQLite:
+
+```text
+sqlite:///./whisky_market.db
+```
+
+When running through Docker Compose, `DATABASE_URL` points the API container to the PostgreSQL service:
+
+```text
+postgresql+psycopg://whisky_user:whisky_password@postgres:5432/whisky_market
+```
+
+This keeps the project simple to run locally while also supporting a more realistic containerised PostgreSQL setup.
+
+
 ## Setup
 
 Create and activate a virtual environment:
