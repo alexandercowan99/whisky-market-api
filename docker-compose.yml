@@ -3,7 +3,7 @@ services:
     build: .
     container_name: whisky-market-api
     environment:
-      DATABASE_URL: postgresql+psycopg://whisky_user:whisky_password@postgres:5432/whisky_market
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://whisky_user:whisky_password@postgres:5432/whisky_market}
     ports:
       - "8000:8000"
     depends_on:
@@ -14,15 +14,15 @@ services:
     image: postgres:16
     container_name: whisky-market-postgres
     environment:
-      POSTGRES_DB: whisky_market
-      POSTGRES_USER: whisky_user
-      POSTGRES_PASSWORD: whisky_password
+      POSTGRES_DB: ${POSTGRES_DB:-whisky_market}
+      POSTGRES_USER: ${POSTGRES_USER:-whisky_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-whisky_password}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U whisky_user -d whisky_market"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-whisky_user} -d ${POSTGRES_DB:-whisky_market}"]
       interval: 5s
       timeout: 5s
       retries: 5
