@@ -1,19 +1,24 @@
-name: Tests
+name: Tests and ECR Build
 
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
+    name: Run tests
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -25,3 +30,44 @@ jobs:
 
       - name: Run tests
         run: pytest --disable-warnings
+
+  build-and-push:
+    name: Build and push ARM64 image
+    runs-on: ubuntu-latest
+    needs: test
+
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Configure temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::223178890866:role/GitHubActionsWhiskyMarketApi
+          aws-region: eu-west-2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Enable ARM64 emulation
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/whisky-market-api:latest
+            ${{ steps.login-ecr.outputs.registry }}/whisky-market-api:${{ github.sha }}

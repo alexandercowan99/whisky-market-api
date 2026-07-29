@@ -32,3 +32,11 @@ data/real/
 
 # Generated ML model artefacts
 models/*.joblib
+# Local AWS deployment artefacts
+AWSCLIV2.pkg
+ecs-secrets-policy.json
+ecs-task-definition-postgres.json
+ecs-task-definition.json
+ecs-task-trust-policy.json
+github-ecr-policy.json
+github-oidc-trust-policy.json
