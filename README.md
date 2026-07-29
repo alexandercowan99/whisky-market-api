@@ -1,49 +1,49 @@
 # Whisky Market Data API
 
-A FastAPI project for working with whisky auction-style data.
+A FastAPI project for ingesting, cleaning, storing and analysing synthetic whisky auction data.
 
-The API lets you upload a CSV, checks the expected columns are there, cleans up messy scraped fields, stores the results in SQLite, and exposes query and analytics endpoints.
+The API accepts CSV uploads, validates the expected columns, cleans scraped auction fields, stores the results through SQLAlchemy, exposes query and analytics endpoints, and serves a simple baseline price prediction model.
 
-I built this as a portfolio project to practise production-style Python data work: API design, data validation, cleaning, SQL storage, automated testing, Docker, and a simple ML prediction endpoint.
+I built this as a portfolio project to practise production-style Python data work: API design, data validation, SQL storage, testing, Docker, model serving and cloud deployment.
 
-The repo uses synthetic sample data only. It is based on the kind of whisky market data problems I have worked with before, but it does not include any private, client-owned or proprietary datasets.
+The repository contains synthetic sample data only. It does not include private, client-owned or proprietary datasets.
 
 ---
 
 ## Project Status
 
-Portfolio v1 complete.
+Portfolio v2 complete.
 
-The project currently includes:
+The project includes:
 
-- CSV upload endpoint
-- required-column validation
-- cleaning/parsing for auction result fields
-- SQLite storage with SQLAlchemy
+- CSV upload and required-column validation
+- cleaning and parsing for auction result fields
+- duplicate handling based on `Lot_Link`
+- SQLite and PostgreSQL support through SQLAlchemy
 - query and analytics endpoints
 - automated tests with pytest
-- Docker support
-- baseline ML price prediction workflow
-- API endpoint for model inference
+- Docker and Docker Compose support
+- a baseline price prediction workflow
+- model inference through FastAPI
+- an AWS deployment using ECR, ECS Fargate and RDS PostgreSQL
+- GitHub Actions for tests and automated ARM64 image publishing
 
-The ML model is deliberately simple. The main point is to show the workflow around the model: feature preparation, train/test evaluation, saving/loading the model, validating API inputs, and serving a prediction through FastAPI.
+The ML model is deliberately simple. The main focus is the workflow around the model: feature preparation, train/test evaluation, saving and loading the model, input validation, and serving predictions through an API.
 
 ---
 
 ## What the API Does
 
-Current data flow:
-
 ```text
 CSV upload
 → required-column validation
 → data cleaning and parsing
-→ upload summary
-→ SQLite storage
-→ query and analytics endpoints
+→ duplicate checking
+→ SQL storage
+→ query, analytics and prediction endpoints
 ```
 
-Main endpoints include:
+Main endpoints:
 
 ```text
 GET  /health
@@ -56,7 +56,7 @@ GET  /sales/monthly-summary
 POST /sales/predict-price
 ```
 
-Interactive API docs are available at:
+Interactive API documentation is available locally at:
 
 ```text
 http://localhost:8000/docs
@@ -66,54 +66,76 @@ http://localhost:8000/docs
 
 ## Tech Stack
 
-- Python
+- Python 3.12
 - FastAPI
 - SQLAlchemy
 - SQLite
+- PostgreSQL
 - pandas
 - scikit-learn
 - joblib
 - pytest
-- Docker
+- Docker and Docker Compose
+- GitHub Actions
+- AWS ECR
+- AWS ECS Fargate
+- AWS RDS for PostgreSQL
+- AWS Secrets Manager
+- Amazon CloudWatch
 
 ---
 
-## Project Architecture
+## Run Modes
 
-The project supports three main run modes:
+### Local development
 
 ```text
-Local development:
-FastAPI app
-→ SQLite database file
+FastAPI
+→ local SQLite database file
+```
 
-Docker Compose mode:
+### Docker Compose
+
+```text
 FastAPI container
 → PostgreSQL container
+```
 
-Test mode:
+### Automated tests
+
+```text
 pytest
 → temporary SQLite test database
 ```
 
-The app reads the database connection from the `DATABASE_URL` environment variable.
+### AWS deployment demonstration
 
-If `DATABASE_URL` is not set, the app falls back to SQLite:
+```text
+GitHub Actions
+→ OIDC authentication
+→ Amazon ECR
+→ ECS Fargate
+→ FastAPI container
+→ RDS PostgreSQL
+
+Secrets Manager
+→ DATABASE_URL
+
+FastAPI logs
+→ CloudWatch
+```
+
+The application reads its database connection from the `DATABASE_URL` environment variable. When the variable is not set, it falls back to:
 
 ```text
 sqlite:///./whisky_market.db
 ```
 
-When running through Docker Compose, `DATABASE_URL` points the API container to the PostgreSQL service:
+This keeps local development lightweight while allowing PostgreSQL to be used in Docker Compose and AWS.
 
-```text
-postgresql+psycopg://whisky_user:whisky_password@postgres:5432/whisky_market
-```
+---
 
-This keeps the project simple to run locally while also supporting a more realistic containerised PostgreSQL setup.
-
-
-## Setup
+## Local Setup
 
 Create and activate a virtual environment:
 
@@ -134,13 +156,19 @@ Run the tests:
 pytest
 ```
 
-Start the API locally:
+Train the baseline model:
+
+```bash
+python -m scripts.train_price_model
+```
+
+Start the API:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8000/docs
@@ -148,89 +176,63 @@ http://localhost:8000/docs
 
 ---
 
-## Running with Docker Compose and PostgreSQL
+## Docker Compose with PostgreSQL
 
-### Environment Configuration
-
-Docker Compose supports environment variables for the PostgreSQL setup.
-
-An example configuration is provided in:
+An example environment file is provided:
 
 ```text
 .env.example
+```
 
-For local development, Docker Compose also includes sensible default values, so the project can be started without creating a private .env file.
-
-To customise the database configuration, copy the example file:
+Docker Compose also includes local default values. To customise them:
 
 ```bash
 cp .env.example .env
 ```
 
-Then edit .env as needed.
+The `.env` file is ignored by Git so private local values are not committed.
 
-The .env file is intentionally ignored by Git so private local settings are not committed.
-
-The project can also be run with PostgreSQL using Docker Compose.
-
-This starts two services:
-
-```text
-FastAPI app
-PostgreSQL database
-```
-
-Start both services:
+Start the API and PostgreSQL services:
 
 ```bash
 docker compose up --build -d
 ```
 
-Check the services are running:
+Check their status:
 
 ```bash
 docker compose ps
 ```
 
-Open the API docs:
+Open the API documentation:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-In this mode, the API uses PostgreSQL instead of the default local SQLite database.
-
-The PostgreSQL connection is passed to the API container through the `DATABASE_URL` environment variable in `docker-compose.yml`.
-
-To stop the services:
+Stop the services:
 
 ```bash
 docker compose down
 ```
 
-To stop the services and delete the local PostgreSQL data volume:
+Stop the services and delete the local PostgreSQL volume:
 
 ```bash
 docker compose down -v
 ```
 
-The app still defaults to SQLite when `DATABASE_URL` is not set, so it can be run simply with:
+### Check PostgreSQL data
+
+After uploading the sample CSV, count the stored rows:
 
 ```bash
-uvicorn app.main:app --reload
+docker compose exec postgres \
+  psql -U whisky_user -d whisky_market \
+  -c "SELECT COUNT(*) FROM auction_lots;"
 ```
 
-This keeps local development and testing lightweight while also supporting a more realistic PostgreSQL setup.
-
-### Checking PostgreSQL Data
-
-After uploading the sample CSV through the API, you can check the number of stored rows with:
-
-```bash
-docker compose exec postgres psql -U whisky_user -d whisky_market -c "SELECT COUNT(*) FROM auction_lots;"
-```
-
-Expected output after uploading the sample data once:
+Expected result after one sample upload:
 
 ```text
  count
@@ -239,52 +241,51 @@ Expected output after uploading the sample data once:
 (1 row)
 ```
 
-### Duplicate Upload Handling
-
-The upload endpoint skips duplicate auction lots based on `Lot_Link`.
-
-If the same CSV is uploaded more than once, existing lots are not inserted again. The API response includes:
-
-```json
-{
-  "rows_received": 10,
-  "rows_inserted": 0,
-  "duplicates_skipped": 10
-}s
-
-You can also check which tables exist in PostgreSQL with:
+List the database tables:
 
 ```bash
-docker compose exec postgres psql -U whisky_user -d whisky_market -c "\dt"
+docker compose exec postgres \
+  psql -U whisky_user -d whisky_market \
+  -c "\\dt"
 ```
 
 You should see the `auction_lots` table.
 
 ---
 
+## Duplicate Upload Handling
+
+The upload endpoint identifies duplicate auction lots using `Lot_Link`.
+
+Uploading the same sample CSV for a second time returns a response similar to:
+
+```json
+{
+  "rows_received": 10,
+  "rows_inserted": 0,
+  "duplicates_skipped": 10
+}
+```
+
+---
+
 ## Sample Data
 
-The public repo only includes synthetic sample data:
+The public repository includes synthetic sample data at:
 
 ```text
 data/sample/sample_auction_lots.csv
 ```
 
-Real/private data is excluded from the repository.
+Real and private data is excluded.
 
 ---
 
 ## Machine Learning: Price Prediction
 
-The project includes a simple baseline model for predicting whisky auction result prices.
+The project includes a linear regression baseline for predicting whisky auction result prices.
 
-Current model:
-
-```text
-Linear regression baseline
-```
-
-Current features:
+Features:
 
 - `estimate_low`
 - `estimate_high`
@@ -295,23 +296,19 @@ Target:
 
 - `result_price`
 
-The ML workflow is:
+Workflow:
 
 ```text
 cleaned data
 → feature preparation
 → train/test evaluation
 → saved model artefact
-→ API-based prediction
+→ API prediction
 ```
 
-This is not meant to be a highly accurate commercial pricing model. The sample dataset is small and synthetic, so the metrics are mainly a smoke test that the ML pipeline works end to end.
+The sample dataset is small and synthetic, so the model metrics are a smoke test of the end-to-end ML pipeline rather than evidence of commercial predictive accuracy.
 
----
-
-## Train the Model
-
-Before using the prediction endpoint, train the model locally:
+Train the model with:
 
 ```bash
 python -m scripts.train_price_model
@@ -323,11 +320,11 @@ This creates:
 models/price_model.joblib
 ```
 
-Generated model files are ignored by Git and can be regenerated from the training script.
+Generated model files are ignored by Git and can be recreated from the training script.
 
-Example training output from the synthetic sample data:
+Example training output:
 
-```text
+```json
 {
   "training_rows": 7,
   "test_rows": 3,
@@ -338,15 +335,7 @@ Example training output from the synthetic sample data:
 }
 ```
 
----
-
-## Price Prediction Endpoint
-
-After training the model, start the API:
-
-```bash
-uvicorn app.main:app --reload
-```
+### Prediction endpoint
 
 Use:
 
@@ -374,48 +363,96 @@ Example response:
 }
 ```
 
-If the model file has not been created yet, the endpoint returns a `503 Service Unavailable` response telling the user to run the training script first.
+When the model file is unavailable, the endpoint returns `503 Service Unavailable` with instructions to train the model.
+
+---
+
+## AWS Deployment Demonstration
+
+The Docker image was deployed temporarily to ECS Fargate and connected to a private RDS PostgreSQL instance.
+
+The deployment used:
+
+- ECR to store the Docker image
+- ECS Fargate to run the FastAPI container
+- RDS PostgreSQL for persistent storage
+- Secrets Manager to supply `DATABASE_URL`
+- security groups to restrict database access to the API task
+- CloudWatch for container logs
+- an ARM64 task and Docker image
+
+A persistence test was completed by:
+
+1. uploading 10 sample records through the live API;
+2. stopping and replacing the Fargate task;
+3. querying the replacement task without uploading the CSV again; and
+4. confirming that all 10 records remained in RDS.
+
+This demonstrated that application containers could be replaced without losing database data.
+
+The AWS setup was a temporary portfolio deployment rather than a continuously hosted production service. A production version would normally add a stable ECS service, HTTPS, a load balancer or another stable endpoint, a custom domain, database migrations, health-based recovery and fuller monitoring.
+
+---
+
+## GitHub Actions and ECR Publishing
+
+The workflow in `.github/workflows/tests.yml` runs the automated tests for pushes and pull requests.
+
+For successful pushes to `main`, it also:
+
+1. requests a temporary GitHub OIDC identity token;
+2. assumes a repository-restricted AWS IAM role;
+3. logs in to ECR;
+4. builds a Linux ARM64 Docker image; and
+5. pushes two tags:
+   - `latest`
+   - the full Git commit SHA
+
+The commit tag links an ECR image back to the exact source-code version that produced it. Permanent AWS access keys are not stored in the GitHub repository.
+
+The workflow publishes the image to ECR but does not automatically launch or update an ECS service.
 
 ---
 
 ## Testing
 
-Run all tests with:
+Run the full test suite with:
 
 ```bash
 pytest
 ```
 
-The test suite covers:
+The suite covers:
 
-- cleaning/parsing logic
+- cleaning and parsing logic
 - API routes
 - SQL repository functions
 - serializers
 - Pydantic schemas
 - ML feature preparation
-- model training/evaluation
-- model saving/loading
+- model training and evaluation
+- model saving and loading
 - prediction utilities
-- prediction API endpoint
+- the prediction API endpoint
+
+---
+
+## Security and Deployment Choices
+
+- The container runs as a non-root Linux user.
+- The RDS database is not publicly accessible.
+- PostgreSQL traffic is restricted to the API task security group.
+- The database connection is held in Secrets Manager.
+- GitHub uses temporary OIDC credentials rather than permanent AWS keys.
+- Pull requests run tests but do not receive AWS deployment credentials.
+- The public API security-group rule was restricted for the deployment test.
 
 ---
 
 ## Notes and Limitations
 
-This is a portfolio project, not a production deployment.
-
-## Screenshots
-
-### FastAPI docs
-
-![FastAPI docs](docs/images/fastapi-docs.png)
-
-### Prediction endpoint
-
-![Prediction endpoint](docs/images/predict-price.png)
-
-### Test suite
-
-![Tests passing](docs/images/tests-passing.png)
-
+- The dataset is small and synthetic.
+- The model is a baseline demonstration rather than a commercial pricing model.
+- Table creation currently occurs through SQLAlchemy at application start; a production system would normally use explicit database migrations.
+- The AWS deployment was temporary and did not include an always-running ECS service, load balancer, HTTPS endpoint or custom domain.
+- Secrets injected as environment variables are available to the running process, so production systems should also apply strict task access controls and regular secret rotation.
